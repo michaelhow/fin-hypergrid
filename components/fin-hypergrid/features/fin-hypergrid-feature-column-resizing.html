@@ -1,0 +1,114 @@
+<!--
+
+The `fin-hypergrid-column-resizing` element is a custom Polymer web component that serves as the base "class" or API for the grid features (controllers).
+
+@group OpenFin hypergrid
+@element fin-hypergrid-column-resizing
+@homepage http://github.com/openfin/fin-hypergrid
+-->
+
+<polymer-element name="fin-hypergrid-feature-column-resizing" extends="fin-hypergrid-feature-base">
+  <template></template>
+  <script>
+
+
+(function() {
+
+'use strict';
+
+    Polymer({ /* jshint ignore:line */
+
+        dragColumn: -1,
+        dragStart: -1,
+        dragColStartingWidth: -1,
+
+        handleMouseDrag: function(grid, event) {
+            if (this.dragColumn > -1) {
+                var fixedColCount = grid.getFixedColCount();
+                var distance = event.primitiveEvent.detail.mouse.x - this.dragStart + this.dragColStartingWidth;
+                this.setColumnWidth(grid, this.dragColumn - fixedColCount - 1, distance);
+            } else if (this.next) {
+                this.next.handleMouseDrag(grid, event);
+            }
+        },
+
+        setColumnWidth: function(grid, colIndex, width) {
+            var fixedColCount = grid.getFixedColCount();
+            var scrollLeft = grid.getHScrollValue();
+            if (colIndex < 0) {
+                grid.setFixedColumnWidth(fixedColCount + colIndex, width);
+            } else {
+                grid.setColumnWidth(colIndex + scrollLeft, width);
+            }
+        },
+
+        getColumnWidth: function(grid, colIndex) {
+            var fixedColCount = grid.getFixedColCount();
+            if (colIndex < 0) {
+                return grid.getFixedColumnWidth(fixedColCount + colIndex);
+            } else {
+                return grid.getColumnWidth(colIndex);
+            }
+        },
+
+        handleMouseDown: function(grid, event) {
+            var gridCell = event.gridCell;
+            var overCol = grid.overColumnDivider(event);
+            if (overCol > -1 && gridCell.y < grid.getFixedRowCount()) {
+                var scrollLeft = grid.getHScrollValue();
+                var fixedColCount = grid.getFixedColCount();
+                this.dragColumn = overCol;
+                this.dragStart = event.primitiveEvent.detail.mouse.x;
+                if (overCol < 2) {
+                    scrollLeft = 0;
+                }
+                this.dragColStartingWidth = this.getColumnWidth(grid, overCol - fixedColCount - 1 + scrollLeft);
+                this.detachChain();
+            } else if (this.next) {
+                this.next.handleMouseDown(grid, event);
+            }
+        },
+
+        handleMouseUp: function(grid, event) {
+            if (this.dragColumn > -1) {
+                this.cursor = null;
+                this.dragColumn = -1;
+
+                //delay here to give other events a chance to be dropped
+                var self = this;
+                setTimeout(function(){
+                    self.attachChain();
+                }, 200);
+            } else if (this.next) {
+                this.next.handleMouseUp(grid, event);
+            }
+        },
+
+        handleMouseMove: function(grid, event) {
+            if (this.dragColumn > -1) {
+                return;
+            }
+            this.cursor = null;
+            if (this.next) {
+                this.next.handleMouseMove(grid, event);
+            }
+            this.checkForColumnResizeCursorChange(grid, event)
+        },
+
+        checkForColumnResizeCursorChange: function(grid, event) {
+
+            var gridCell = event.gridCell;
+
+            if (this.isFixedRow(grid, event) && grid.overColumnDivider(event) > -1) {
+                this.cursor = 'col-resize';
+            } else {
+                this.cursor = null;
+            }
+
+        },
+    });
+
+})(); /* jshint ignore:line */
+
+  </script>
+</polymer-element>

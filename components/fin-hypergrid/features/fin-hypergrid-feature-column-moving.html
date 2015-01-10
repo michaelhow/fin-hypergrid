@@ -1,0 +1,99 @@
+<!--
+
+The `fin-hypergrid-feature-column-moving` element is a custom Polymer web component that serves as the base "class" or API for the grid features (controllers).
+
+@group OpenFin hypergrid
+@element fin-hypergrid-feature-column-moving
+@homepage http://github.com/openfin/fin-hypergrid
+-->
+
+<polymer-element name="fin-hypergrid-feature-column-moving" extends="fin-hypergrid-feature-base">
+  <template></template>
+  <script>
+
+
+(function() {
+
+'use strict';
+
+    Polymer({ /* jshint ignore:line */
+
+        dragArmed: false,
+        dragging: false,
+        dragCol: -1,
+        dragOffset: 0,
+
+        handleMouseDrag: function(grid, event) {
+
+            var gridCell = event.gridCell;
+            var x, y;
+
+            if (this.isFixedCol(grid, event)) {
+                return; //no rearranging fixed columns
+            }
+
+            if (this.isFixedRow(grid,event) && this.dragArmed && !this.dragging) {
+                this.dragging = true;
+                this.dragCol = gridCell.x - grid.getFixedColCount();
+                this.dragOffset = event.mousePoint.x;
+                this.detachChain();
+                x = event.primitiveEvent.detail.mouse.x - this.dragOffset;
+                y = event.primitiveEvent.detail.mouse.y;
+                grid.createDragColumn(x, this.dragCol);
+            } else if (this.next) {
+                this.next.handleMouseDrag(grid, event);
+            }
+            if (this.dragging) {
+                x = event.primitiveEvent.detail.mouse.x - this.dragOffset;
+                y = event.primitiveEvent.detail.mouse.y;
+                grid.dragColumn(x);
+            }
+        },
+
+        handleMouseDown: function(grid, event) {
+            if (this.isFixedRow(grid, event)) {
+                this.dragArmed = true;
+            }
+            if (this.next) {
+                this.next.handleMouseDown(grid, event);
+            }
+        },
+
+        handleMouseUp: function(grid, event) {
+            if (this.dragging) {
+                this.cursor = null;
+                //delay here to give other events a chance to be dropped
+                var self = this;
+                grid.endDragColumn();
+                setTimeout(function(){
+                    self.attachChain();
+                }, 200);
+            }
+            this.dragCol = -1;
+            this.dragging = false;
+            this.dragArmed = false;
+            grid.repaint();
+            if (this.next) {
+                this.next.handleMouseUp(grid, event);
+            }
+
+        },
+
+        handleMouseMove: function(grid, event) {
+
+            this.cursor = null;
+            if (this.next) {
+                this.next.handleMouseMove(grid, event);
+            }
+            if (this.isFixedRow(grid, event) && this.dragging) {
+                this.cursor = 'none';//move';
+            }
+
+        }
+
+    });
+
+})(); /* jshint ignore:line */
+
+  </script>
+</polymer-element>
